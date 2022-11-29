@@ -5,18 +5,24 @@ function startNewGameBtnClicked(event) {
     gameDrawElement.style.display = "none";
     playerNameNotEnteredElement.style.display = "none";
     gameSectionElement.style.display = "block";
-    currentPlayerID = 0;
+    currentPlayerID = whichPlayerShouldStart();
     currentRound = 0;
+    // The first player starts. If it's swapped then it will be the second player.
     activePlayerNameElement.textContent = player[currentPlayerID].name;
     // reset current positions on gameboard of players:
     player[0].positionsOnGameboard = [];
     player[0].won = false;
     player[1].won = false;
     player[1].positionsOnGameboard = [];
+
     initializeGameBoard();
   } else {
     playerNameNotEnteredElement.style.display = "block";
   }
+}
+
+function whichPlayerShouldStart() {
+  return player[0].starting === true ? 0 : 1;
 }
 
 function initializeGameBoard() {
@@ -40,7 +46,9 @@ function switchPlayerButtonClicked() {
   }
   if (player[0].name && player[1].name) {
     playerNameNotEnteredElement.style.display = "none";
+
     swapPlayers();
+    switchPlayerTilesVisually();
   } else {
     playerNameNotEnteredElement.style.display = "block";
     return;
@@ -48,42 +56,33 @@ function switchPlayerButtonClicked() {
 }
 
 function swapPlayers() {
-  // Swaping player array.
-  const player1Copy = structuredClone(player[0]);
-  const player2Copy = structuredClone(player[1]);
-  player[0].name = player2Copy.name;
-  player[0].symbol = player2Copy.symbol;
-  player[0].wonCnt = player2Copy.wonCnt;
-  player[1].name = player1Copy.name;
-  player[1].symbol = player1Copy.symbol;
-  player[1].wonCnt = player1Copy.wonCnt;
-
-  const player1DisplayElement = document.getElementById("player-1-config");
-  const player2DisplayElement = document.getElementById("player-2-config");
-  const player1WonCnt = document.getElementById("won-cnt-player-1");
-  const player2WonCnt = document.getElementById("won-cnt-player-2");
-  const player1Symbol = document.getElementById("player-1-symbol");
-  const player2Symbol = document.getElementById("player-2-symbol");
-
-  // Swaping text content on the screen.
-  player1DisplayElement.children[1].textContent = player[0].name;
-  player2DisplayElement.children[1].textContent = player[1].name;
-  player1Symbol.textContent = player[0].symbol;
-  player2Symbol.textContent = player[1].symbol;
-  player1WonCnt.textContent = player[0].wonCnt;
-  player2WonCnt.textContent = player[1].wonCnt;
-
-  if (player[0].wonCnt > 0) {
-    player1WonCnt.classList.add("green-font-color");
+  // Switch the starting state!
+  if (player[0].starting === false) {
+    player[0].starting = true;
+    player[1].starting = false;
   } else {
-    player1WonCnt.classList.remove("green-font-color");
+    player[0].starting = false;
+    player[1].starting = true;
   }
+}
 
-  if (player[1].wonCnt > 0) {
-    player2WonCnt.classList.add("green-font-color");
+function switchPlayerTilesVisually() {
+  // First clear all previously assigned classes:
+  player1TileElement.className = "";
+  player2TileElement.className = "";
 
+  // A little hack to be able have the default duration for the animation even if you click more than one time on the button.
+  // Found here: https://css-tricks.com/restart-css-animation/
+  void player1TileElement.offsetWidth;
+  void player2TileElement.offsetWidth;
+
+  // Then assign them the new values.
+  if (playersChangedClickCount++ % 2 === 0) {
+    player1TileElement.classList.add("p1-move-position-forward");
+    player2TileElement.classList.add("p2-move-position-forward");
   } else {
-    player1WonCnt.classList.remove("green-font-color");
+    player1TileElement.classList.add("p1-move-position-backwards");
+    player2TileElement.classList.add("p2-move-position-backwards");
   }
 }
 
@@ -100,12 +99,12 @@ function clickOnGameBoardItem(event) {
       playedIdx
   );
   player[currentPlayerID].positionsOnGameboard.push(playedIdx);
-  //   console.log(currentLi.dataset.idx);
   currentLi.classList.add("disabled");
   currentLi.removeEventListener("click", clickOnGameBoardItem);
   currentRound++; // switch to next round!
-  evaluateWinOrDraw();
-  switchPlayer();
+  if (!evaluateWinOrDraw()) {
+    switchPlayer();
+  }
 }
 
 function switchPlayer() {
@@ -125,11 +124,13 @@ function evaluateWinOrDraw() {
       checkVerticallyWin(positionsOnGameBoard) ||
       checkCrossyWin(positionsOnGameBoard)
     ) {
-      console.log("Player: " + currentPlayer.name + " won !!!");
+      console.log(
+        "Player (" + currentPlayer.id + "): " + currentPlayer.name + " won !!!"
+      );
       currentPlayer.won = true;
       currentPlayer.wonCnt++;
       const wonCntLabelElement = document.getElementById(
-        "won-cnt-player-" + (currentPlayerID + 1)
+        "won-cnt-player-" + currentPlayer.id
       );
       wonCntLabelElement.textContent = currentPlayer.wonCnt;
       wonCntLabelElement.classList.add("green-font-color");
@@ -137,20 +138,20 @@ function evaluateWinOrDraw() {
       gameOverElement.style.display = "block";
       gameCurrentlyRunning = false;
       lockGameBoard();
+
+      return true;
+
+    } else if (currentRound === gameBoardElement.length) {
+      // It's a draw!
+      gameCurrentlyRunning = false;
+      console.log("It's a draw!");
+      gameDrawElement.style.display = "block";
+
+      return true;
     }
   }
 
-  // Check for draw:
-  if (
-    currentRound === gameBoardElement.length &&
-    !player[0].won &&
-    !player[1].won
-  ) {
-    // draw!
-    gameCurrentlyRunning = false;
-    console.log("It's a draw!");
-    gameDrawElement.style.display = "block";
-  }
+  return false;
 }
 
 /*

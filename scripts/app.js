@@ -1,9 +1,13 @@
 let currentPlayerID = 0;
+let firstPlayerIdx = 0;
 let currentRound = 0;
 let gameCurrentlyRunning = false;
+let playersChangedClickCount = 0;
 
 const player = [
     {
+        id: 1,
+        starting: true,
         name: "",
         symbol: "X",
         positionsOnGameboard: [],
@@ -11,6 +15,8 @@ const player = [
         wonCnt: 0
     },
     {
+        id: 2,
+        starting: false,
         name: "",
         symbol: "O",
         positionsOnGameboard: [],
@@ -39,6 +45,8 @@ const gameOverElement = document.getElementById("game-over");
 const gameDrawElement = document.getElementById("game-draw");
 const winnerNameElement = document.getElementById("winner-name");
 const switchPlayerButton = document.getElementById("switch-player-arrows");
+const player1TileElement = document.getElementById("player1-tile");
+const player2TileElement = document.getElementById("player2-tile");
 
 btnEditPlayer1Name.addEventListener("click", openChoosePlayernameForm);
 btnEditPlayer2Name.addEventListener("click", openChoosePlayernameForm);
